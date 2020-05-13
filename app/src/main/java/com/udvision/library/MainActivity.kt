@@ -22,10 +22,9 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         when(requestCode){
             LOGIN_OK -> {
-                val bundleAccount = data?.getParcelableExtra<Bundle?>("KEY_ACCOUNT")
-                val account = bundleAccount?.get("ACCOUNT")
-                if(account!= null){
-                    Toast.makeText(this,"Login Success",Toast.LENGTH_LONG).show()
+                val userDisplayName = data?.getStringExtra("KEY_USER_DISPLAYNAME")
+                if(userDisplayName!= null){
+                    Toast.makeText(this,"$userDisplayName is login Successfully",Toast.LENGTH_LONG).show()
                 }else{
                     Toast.makeText(this,"Login Failed",Toast.LENGTH_LONG).show()
                 }
