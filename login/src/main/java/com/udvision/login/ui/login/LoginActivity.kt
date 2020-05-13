@@ -14,16 +14,16 @@ import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.SignInButton
 import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.tasks.Task
+import com.google.firebase.auth.AuthResult
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import com.udvision.login.R
 import kotlinx.android.synthetic.main.activity_login.*
 
@@ -33,6 +33,8 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var loginViewModel: LoginViewModel
     private lateinit var mGoogleSignInClient: GoogleSignInClient
     private val RC_SIGN_IN = 1
+    private  var auth: FirebaseAuth = FirebaseAuth.getInstance()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -117,12 +119,9 @@ class LoginActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
 
-        // Check for existing Google Sign In account, if the user is already signed in
-// the GoogleSignInAccount will be non-null.
-        val account = GoogleSignIn.getLastSignedInAccount(this)
-        account?.let {
-           setResult(it)
-        }
+        // Check if user is signed in (non-null) and update UI accordingly.
+        val currentUser = auth.currentUser
+        handleSignInResult(currentUser)
     }
 
     private fun signIn() {
@@ -139,35 +138,45 @@ class LoginActivity : AppCompatActivity() {
             // a listener.
             val task =
                 GoogleSignIn.getSignedInAccountFromIntent(data)
-            handleSignInResult(task)
+
+            try {
+                // Google Sign In was successful, authenticate with Firebase
+                val account = task.getResult(ApiException::class.java)!!
+                Log.d("Login", "firebaseAuthWithGoogle:" + account.id)
+                    firebaseAuthWithGoogle(account.idToken)
+            } catch (e: ApiException) {
+                // Google Sign In failed, update UI appropriately
+                Log.w("Login", "Google sign in failed", e)
+                // ...
+            }
         }
     }
+    private fun firebaseAuthWithGoogle(idToken: String?) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    // Sign in success, update UI with the signed-in user's information
+                    Log.d("LoGIN", "signInWithCredential:success")
+                    val user = auth.currentUser
+                    handleSignInResult(user)
 
-    private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
-        try {
-            val account =
-                completedTask.getResult(ApiException::class.java)
+                } else {
+                    // If sign in fails, display a message to the user.
+                    Log.w("LoGIN", "signInWithCredential:failure", task.exception)
+                    // ...
+                }
 
-            // Signed in successfully, show authenticated UI.
-            setResult(account)
-        } catch (e: ApiException) {
-            // The ApiException status code indicates the detailed failure reason.
-            // Please refer to the GoogleSignInStatusCodes class reference for more information.
-            Log.w(
-                "Login",
-                "signInResult:failed code=" + e.statusCode
-            )
-            setResult(null)
-        }
+                // ...
+            }
     }
 
-    private fun setResult(account: GoogleSignInAccount?){
+    private fun handleSignInResult(user: FirebaseUser?) {
         var intent = Intent()
-        var bundle = Bundle()
-        bundle.putParcelable("ACCOUNT", account)
-        intent.putExtra("KEY_ACCOUNT", bundle)
+        intent.putExtra("KEY_USER_DISPLAYNAME", user?.displayName)
         setResult(RESULT_OK,intent)
         finish()
+
     }
 
     private fun addGoogleSignIn() {
@@ -175,6 +184,7 @@ class LoginActivity : AppCompatActivity() {
 // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
         val gso =
             GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
                 .requestEmail()
                 .build()
 
