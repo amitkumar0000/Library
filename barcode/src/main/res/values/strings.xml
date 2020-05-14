@@ -1,0 +1,5 @@
+<resources>
+    <string name="take_barcode_picture">Take a picture</string>
+    <string name="scan_barcode">scan</string>
+    <string name="open_camera">camera</string>
+</resources>
