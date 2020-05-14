@@ -1,3 +1,4 @@
 rootProject.name='Library'
 include ':app'
+include ':login'
 include ':barcode'
