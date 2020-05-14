@@ -26,12 +26,11 @@ class MainActivity : AppCompatActivity() {
                 val userDisplayName = data?.getStringExtra("KEY_USER_DISPLAYNAME")
                 if(userDisplayName!= null){
                     Toast.makeText(this,"$userDisplayName is login Successfully",Toast.LENGTH_LONG).show()
+                    startActivity(Intent(this,BarcodeActivity::class.java))
                 }else{
                     Toast.makeText(this,"Login Failed",Toast.LENGTH_LONG).show()
                 }
             }
         }
-
-        startActivity(Intent(this,BarcodeActivity::class.java))
     }
 }
